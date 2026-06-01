@@ -1,0 +1,114 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DeepSeek Switch · Neural Deck</title>
+    <link rel="stylesheet" href="/public/style.css" />
+  </head>
+  <body>
+    <div class="space"></div>
+    <div class="noise"></div>
+    <div class="scanline"></div>
+
+    <div class="deck">
+      <aside class="rail" aria-label="DeepSeek Switch 控制台导航">
+        <a class="sigil" href="#" aria-label="DeepSeek Switch 首页">
+          <span class="sigil-core">DS</span>
+          <span class="sigil-ring"></span>
+        </a>
+        <div class="brand-copy">
+          <p>NEURAL BRIDGE</p>
+          <h1>DeepSeek<br />Switch</h1>
+        </div>
+        <nav class="nav-menu" aria-label="主导航">
+          <button type="button" class="nav-button active" data-nav="overview"><b>01</b><span>概览</span><small>Overview</small></button>
+          <button type="button" class="nav-button" data-nav="usage"><b>02</b><span>用量</span><small>Telemetry</small></button>
+          <button type="button" class="nav-button" data-nav="models"><b>03</b><span>模型</span><small>Models</small></button>
+          <button type="button" class="nav-button" data-nav="config"><b>04</b><span>设置</span><small>Config</small></button>
+          <button type="button" class="nav-button" data-nav="docs"><b>05</b><span>指南</span><small>Launch</small></button>
+        </nav>
+        <div class="status-card">
+          <span id="statusDot" class="dot"></span>
+          <div><strong id="statusBadge">检查中</strong><small id="statusText">正在读取配置</small></div>
+        </div>
+        <div class="local-chip"><span>LOCAL NODE</span><code>127.0.0.1</code></div>
+      </aside>
+
+      <main class="console">
+        <section class="hero cockpit-card">
+          <div class="hero-copy">
+            <p class="eyebrow">Codex × DeepSeek · Local Gateway</p>
+            <h2>启动你的本地 AI 跃迁舱</h2>
+            <p>把 Codex 请求转换为 DeepSeek Chat Completions，实时观察流式响应、缓存命中、Token 遥测与费用估算。</p>
+            <div class="hero-tags"><span>Responses API</span><span>SSE Stream</span><span>Tool Calls</span><span>Reasoning Recovery</span></div>
+          </div>
+          <div class="reactor" aria-hidden="true"><span></span><i></i><em></em></div>
+          <div class="endpoint-card">
+            <small>ACTIVE ENDPOINT</small>
+            <code id="endpoint">http://127.0.0.1:11435/v1/responses</code>
+            <button id="copyEndpoint" type="button" class="primary">复制接入坐标</button>
+          </div>
+        </section>
+
+        <p id="message" class="message" aria-live="polite"></p>
+
+        <div id="successDialog" class="dialog-backdrop" hidden>
+          <div class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="successDialogTitle">
+            <div class="dialog-icon">✓</div>
+            <h2 id="successDialogTitle">配置成功</h2>
+            <p id="successDialogText">Codex 自动配置成功！</p>
+            <button id="successDialogOk" type="button" class="primary">进入控制台</button>
+          </div>
+        </div>
+
+        <section class="dashboard-section active" data-section="overview">
+          <header class="section-head"><div><p class="eyebrow">Mission Overview</p><h2>运行态势</h2><p>代理状态、模型、端点与最近请求一屏掌控。</p></div><button id="openDocs" type="button" class="secondary">查看发射流程</button></header>
+          <section class="endpoint-strip cockpit-card"><div><span>CODEX BASE URL</span><code id="baseUrl">http://127.0.0.1:11435/v1</code></div><div><span>PROTOCOL</span><code>OpenAI Responses → DeepSeek Chat Completions</code></div></section>
+          <section class="overview-grid">
+            <article class="metric cockpit-card model-tile"><span>当前模型</span><strong id="overviewCurrentModel">—</strong><small>DeepSeek provider online</small></article>
+            <article class="metric cockpit-card"><span>总 Token</span><strong id="overviewTotalTokens">—</strong><small id="overviewRequests">0 次请求</small></article>
+            <article class="metric cockpit-card"><span>缓存命中率</span><strong id="overviewCacheRate">—</strong><small>Cache efficiency</small></article>
+          </section>
+          <section class="cockpit-card split-card">
+            <div><p class="eyebrow">Last Signal</p><h3>最近调用</h3><dl class="details-list"><div><dt>时间</dt><dd id="lastAt">—</dd></div><div><dt>模型</dt><dd id="lastModel">—</dd></div><div><dt>模式</dt><dd id="lastMode">—</dd></div><div><dt>Token</dt><dd id="lastTokens">—</dd></div><div><dt>费用</dt><dd id="lastCost">—</dd></div></dl></div>
+            <div class="cache-panel"><p class="eyebrow">Cache Reactor</p><h3>缓存能量槽</h3><div class="progress"><span id="cacheBar"></span></div><div class="cache-numbers"><span>输入命中 <strong id="cacheHitInputTokens">0</strong></span><span>输入未命中 <strong id="cacheMissInputTokens">0</strong></span><span>命中 Token <strong id="cacheHitTokens">0</strong></span><span>未命中 Token <strong id="cacheMissTokens">0</strong></span></div></div>
+          </section>
+        </section>
+
+        <section class="dashboard-section" data-section="usage">
+          <header class="section-head"><div><p class="eyebrow">Telemetry</p><h2>用量遥测</h2><p>观察请求数、Token 流量、缓存表现和费用估算。</p></div><div class="section-actions"><button id="refreshStats" type="button" class="secondary">同步遥测</button><button id="resetStats" type="button" class="danger ghost">清空记录</button></div></header>
+          <div id="rangeTabs" class="range-tabs" role="tablist" aria-label="统计范围"><button type="button" class="active" data-range="today">今天</button><button type="button" data-range="7d">7 天</button><button type="button" data-range="30d">30 天</button><button type="button" data-range="all">全部</button></div>
+          <section class="usage-metrics"><article class="metric cockpit-card"><span>请求数</span><strong id="requestCount">0</strong><small id="updatedAt">暂无更新</small></article><article class="metric cockpit-card"><span>总 Token</span><strong id="totalTokens">0</strong><small>输入 + 输出</small></article><article class="metric cockpit-card"><span>输出 Token</span><strong id="outputTokens">0</strong><small>模型生成内容</small></article><article class="metric cockpit-card"><span>缓存命中率</span><strong id="cacheRate">—</strong><small>DeepSeek usage 统计</small></article></section>
+          <section class="cockpit-card usage-detail"><header class="card-head"><div><p class="eyebrow">Model Filter</p><h3 id="usageFilterTitle">全部模型明细</h3></div><select id="usageModelSelect" aria-label="选择模型"><option value="__all">全部模型</option></select></header><div class="detail-grid"><div><span>模型</span><strong id="usageDetailModel">全部</strong></div><div><span>请求</span><strong id="usageDetailRequests">0</strong></div><div><span>总 Token</span><strong id="usageDetailTotal">0</strong></div><div><span>缓存命中</span><strong id="usageDetailCacheRate">—</strong></div><div><span>费用估算</span><strong id="usageDetailCost">—</strong></div></div></section>
+          <section class="cockpit-card table-card"><header class="card-head"><div><p class="eyebrow">Signal Log</p><h3>请求日志</h3></div><small id="usageLogHint">展示最新本地记录。</small></header><div class="table-wrap"><table><thead><tr><th>时间</th><th>模型</th><th>模式</th><th>输入</th><th>输出</th><th>总计</th><th>费用</th></tr></thead><tbody id="usageLogBody"><tr><td colspan="7" class="empty-cell">暂无请求记录</td></tr></tbody></table></div></section>
+        </section>
+
+        <section class="dashboard-section" data-section="models">
+          <header class="section-head"><div><p class="eyebrow">Model Matrix</p><h2>模型矩阵</h2><p>按模型聚合请求与 Token，点击任意行可进入明细。</p></div></header>
+          <section class="cockpit-card table-card"><div class="table-wrap"><table><thead><tr><th>模型</th><th>请求</th><th>缓存命中</th><th>缓存未命中</th><th>输入</th><th>输出</th><th>总计</th><th>费用</th></tr></thead><tbody id="modelsBody"><tr><td colspan="8" class="empty-cell">暂无模型用量。</td></tr></tbody></table></div></section>
+        </section>
+
+        <section class="dashboard-section" data-section="config">
+          <header class="section-head"><div><p class="eyebrow">Launch Config</p><h2>连接配置</h2><p>保存 DeepSeek API Key、选择模型，并把 Codex 指向本地代理。</p></div></header>
+          <form id="configForm" class="settings-grid">
+            <section class="cockpit-card form-card"><header class="card-head"><div><p class="eyebrow">Access Key</p><h3>DeepSeek 凭据</h3></div></header><label for="apiKey">API Key</label><div class="input-row"><input id="apiKey" type="password" autocomplete="off" placeholder="sk-..." /><button id="toggleApiKey" type="button" class="secondary">显示</button></div><p id="keyHint" class="hint">尚未保存 API Key。</p><button id="clearKey" type="button" class="danger ghost">清除已保存 Key</button></section>
+            <section class="cockpit-card form-card"><header class="card-head"><div><p class="eyebrow">Model Core</p><h3>模型与端口</h3></div></header><div id="modelCards" class="model-presets"><button type="button" data-model="deepseek-v4-pro"><strong>deepseek-v4-pro</strong><small>推荐默认</small></button><button type="button" data-model="deepseek-chat"><strong>deepseek-chat</strong><small>通用聊天</small></button><button type="button" data-model="deepseek-reasoner"><strong>deepseek-reasoner</strong><small>推理模型</small></button><button type="button" data-model="deepseek-coder"><strong>deepseek-coder</strong><small>代码场景</small></button></div><div class="form-grid"><div><label for="model">模型名称</label><input id="model" type="text" placeholder="deepseek-v4-pro" /></div><div><label for="port">本地端口</label><input id="port" type="number" min="1" max="65535" placeholder="11435" /></div></div></section>
+            <section class="cockpit-card form-card wide"><header class="card-head"><div><p class="eyebrow">Cost Simulator</p><h3>费用估算</h3></div><small>按百万 Token 价格填写，可留空。</small></header><div class="pricing-grid"><div><label for="currency">币种</label><input id="currency" type="text" placeholder="USD" /></div><div><label for="inputPrice">输入价格 / MTok</label><input id="inputPrice" type="number" min="0" step="0.000001" /></div><div><label for="cacheInputPrice">缓存命中输入 / MTok</label><input id="cacheInputPrice" type="number" min="0" step="0.000001" /></div><div><label for="outputPrice">输出价格 / MTok</label><input id="outputPrice" type="number" min="0" step="0.000001" /></div></div><div class="submit-bar"><button type="submit" class="primary">自动配置 Codex</button><p>写入 <code>~/.codex/config.toml</code> 和 <code>auth.json</code>。</p></div></section>
+          </form>
+        </section>
+
+        <section class="dashboard-section" data-section="docs">
+          <header class="section-head"><div><p class="eyebrow">Launch Guide</p><h2>发射流程</h2><p>三步接通 Codex 与 DeepSeek。</p></div></header>
+          <section class="docs-grid"><article class="cockpit-card doc-card"><span>01</span><h3>装填 Key</h3><p>进入设置页粘贴 DeepSeek API Key，选择模型和端口。</p></article><article class="cockpit-card doc-card"><span>02</span><h3>写入 Codex</h3><p>点击自动配置，让 Codex 的 provider 指向本地代理。</p></article><article class="cockpit-card doc-card"><span>03</span><h3>重启终端</h3><p>保持本服务运行，重新打开 Codex CLI 即可接入。</p></article></section>
+          <section class="cockpit-card docs-note"><h3>常用命令</h3><pre><code>npm install
+npm start
+npm test
+npm run test:translate</code></pre></section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/public/app.js"></script>
+  </body>
+</html>

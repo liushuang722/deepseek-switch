@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>DeepSeek Switch</title>
+    <link rel="stylesheet" href="/public/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="DeepSeek Switch 导航">
+        <a class="brand" href="#" data-nav="overview" aria-label="返回概览">
+          <span class="brand-mark">DS</span>
+          <span class="brand-copy">
+            <strong>DeepSeek Switch</strong>
+            <small>Codex 本地代理</small>
+          </span>
+        </a>
+
+        <nav class="nav-menu" aria-label="主导航">
+          <button type="button" class="nav-button active" data-nav="overview"><span>概览</span><small>Overview</small></button>
+          <button type="button" class="nav-button" data-nav="usage"><span>用量</span><small>Usage</small></button>
+          <button type="button" class="nav-button" data-nav="models"><span>模型</span><small>Models</small></button>
+          <button type="button" class="nav-button" data-nav="config"><span>设置</span><small>Config</small></button>
+          <button type="button" class="nav-button" data-nav="docs"><span>指南</span><small>Guide</small></button>
+        </nav>
+
+        <section class="status-card" aria-live="polite">
+          <span id="statusDot" class="dot"></span>
+          <div>
+            <strong id="statusBadge">检查中</strong>
+            <small id="statusText">正在读取本地配置</small>
+          </div>
+        </section>
+
+        <section class="side-panel">
+          <p>本地服务</p>
+          <code id="sidebarBaseUrl">127.0.0.1:11435</code>
+          <button id="healthCheck" type="button" class="text-button">检查服务</button>
+        </section>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar card">
+          <div>
+            <p class="eyebrow">Codex × DeepSeek</p>
+            <h1>DeepSeek Switch 控制台</h1>
+            <p>配置本地代理、复制连接地址，并查看用量统计。</p>
+          </div>
+          <div class="topbar-actions">
+            <button type="button" class="primary" data-nav="config">开始配置</button>
+            <button id="openDocs" type="button" class="secondary">查看指南</button>
+          </div>
+        </header>
+
+        <p id="message" class="message" aria-live="polite"></p>
+
+        <div id="successDialog" class="dialog-backdrop" hidden>
+          <div class="dialog-card" role="dialog" aria-modal="true" aria-labelledby="successDialogTitle">
+            <div class="dialog-icon">✓</div>
+            <h2 id="successDialogTitle">操作成功</h2>
+            <p id="successDialogText">Codex 自动配置成功！</p>
+            <button id="successDialogOk" type="button" class="primary">知道了</button>
+          </div>
+        </div>
+
+        <section class="dashboard-section active" data-section="overview">
+          <header class="section-head">
+            <div>
+              <p class="eyebrow">Overview</p>
+              <h2>运行概览</h2>
+              <p>确认代理状态、连接地址和最近一次请求。</p>
+            </div>
+            <div class="section-actions">
+              <button id="refreshOverview" type="button" class="secondary">刷新状态</button>
+              <button type="button" class="primary" data-nav="config">配置 Codex</button>
+            </div>
+          </header>
+
+          <section class="endpoint-strip card">
+            <div>
+              <span>Codex Base URL</span>
+              <code id="baseUrl">http://127.0.0.1:11435/v1</code>
+            </div>
+            <div>
+              <span>Responses Endpoint</span>
+              <code id="endpoint">http://127.0.0.1:11435/v1/responses</code>
+            </div>
+            <div class="inline-actions">
+              <button id="copyEndpoint" type="button" class="primary">复制地址</button>
+              <button id="copyBaseUrl" type="button" class="secondary">复制 Base URL</button>
+            </div>
+          </section>
+
+          <section class="overview-grid">
+            <article class="metric card"><span>当前模型</span><strong id="overviewCurrentModel">—</strong><small>Codex 将使用的模型</small></article>
+            <article class="metric card"><span>总 Token</span><strong id="overviewTotalTokens">—</strong><small id="overviewRequests">0 次请求</small></article>
+            <article class="metric card"><span>缓存命中率</span><strong id="overviewCacheRate">—</strong><small>基于 DeepSeek usage 字段</small></article>
+            <article class="metric card"><span>估算费用</span><strong id="overviewCost">—</strong><small>按当前价格配置计算</small></article>
+          </section>
+
+          <section class="card split-card">
+            <div>
+              <p class="eyebrow">Last Request</p>
+              <h3>最近调用</h3>
+              <dl class="details-list">
+                <div><dt>时间</dt><dd id="lastAt">—</dd></div>
+                <div><dt>模型</dt><dd id="lastModel">—</dd></div>
+                <div><dt>模式</dt><dd id="lastMode">—</dd></div>
+                <div><dt>Token</dt><dd id="lastTokens">—</dd></div>
+                <div><dt>费用</dt><dd id="lastCost">—</dd></div>
+              </dl>
+            </div>
+            <div class="cache-panel">
+              <p class="eyebrow">Cache</p>
+              <h3>缓存输入 Token</h3>
+              <div class="progress"><span id="cacheBar"></span></div>
+              <div class="cache-numbers">
+                <span>命中 <strong id="cacheHitInputTokens">0</strong></span>
+                <span>未命中 <strong id="cacheMissInputTokens">0</strong></span>
+              </div>
+            </div>
+          </section>
+        </section>
+
+        <section class="dashboard-section" data-section="usage">
+          <header class="section-head">
+            <div>
+              <p class="eyebrow">Usage</p>
+              <h2>用量分析</h2>
+              <p>按时间范围查看请求量、Token、缓存命中和费用。</p>
+            </div>
+            <div class="section-actions">
+              <div id="rangeTabs" class="range-tabs" role="tablist" aria-label="统计范围">
+                <button type="button" class="active" data-range="today">今日</button>
+                <button type="button" data-range="7d">7 天</button>
+                <button type="button" data-range="30d">30 天</button>
+                <button type="button" data-range="all">全部</button>
+              </div>
+              <button id="refreshStats" type="button" class="secondary">刷新</button>
+              <button id="resetStats" type="button" class="danger ghost">清空统计</button>
+            </div>
+          </header>
+
+          <section class="usage-metrics">
+            <article class="metric card"><span>请求数</span><strong id="requestCount">0</strong><small id="updatedAt">暂无更新</small></article>
+            <article class="metric card"><span>总 Token</span><strong id="totalTokens">0</strong><small>输入 + 输出</small></article>
+            <article class="metric card"><span>输出 Token</span><strong id="outputTokens">0</strong><small>模型生成内容</small></article>
+            <article class="metric card"><span>缓存命中率</span><strong id="cacheRate">—</strong><small><span id="cacheHitTokens">0</span> / <span id="cacheMissTokens">0</span></small></article>
+          </section>
+
+          <section class="card usage-detail">
+            <header class="card-head">
+              <div><p class="eyebrow">Filter</p><h3 id="usageFilterTitle">全部模型明细</h3></div>
+              <select id="usageModelSelect" aria-label="选择模型"><option value="__all">全部模型</option></select>
+            </header>
+            <div class="detail-grid">
+              <div><span>模型</span><strong id="usageDetailModel">全部</strong></div>
+              <div><span>请求</span><strong id="usageDetailRequests">0</strong></div>
+              <div><span>总 Token</span><strong id="usageDetailTotal">0</strong></div>
+              <div><span>缓存命中</span><strong id="usageDetailCacheRate">—</strong></div>
+              <div><span>费用估算</span><strong id="usageDetailCost">—</strong></div>
+            </div>
+          </section>
+
+          <section class="card table-card">
+            <header class="card-head"><div><p class="eyebrow">Recent</p><h3>请求日志</h3></div><small id="usageLogHint">展示最新本地记录。</small></header>
+            <div class="table-wrap"><table><thead><tr><th>时间</th><th>模型</th><th>模式</th><th>输入</th><th>输出</th><th>总计</th><th>费用</th></tr></thead><tbody id="usageLogBody"><tr><td colspan="7" class="empty-cell">暂无请求记录</td></tr></tbody></table></div>
+          </section>
+        </section>
+
+        <section class="dashboard-section" data-section="models">
+          <header class="section-head"><div><p class="eyebrow">Models</p><h2>模型统计</h2><p>按模型聚合请求与 Token。点击行可跳转到用量详情。</p></div></header>
+          <section class="card table-card"><div class="table-wrap"><table><thead><tr><th>模型</th><th>请求</th><th>缓存命中</th><th>缓存未命中</th><th>输入</th><th>输出</th><th>总计</th><th>费用</th></tr></thead><tbody id="modelsBody"><tr><td colspan="8" class="empty-cell">暂无模型用量。</td></tr></tbody></table></div></section>
+        </section>
+
+        <section class="dashboard-section" data-section="config">
+          <header class="section-head"><div><p class="eyebrow">Config</p><h2>连接设置</h2><p>保存 DeepSeek API Key，选择模型与端口，并写入 Codex 本地配置。</p></div></header>
+
+          <form id="configForm" class="settings-grid">
+            <section class="card form-card">
+              <header class="card-head"><div><p class="eyebrow">API</p><h3>DeepSeek 凭据</h3></div><span class="security-badge">本地保存</span></header>
+              <label for="apiKey">API Key</label>
+              <div class="input-row"><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-..." /><button id="toggleApiKey" type="button" class="secondary">显示</button></div>
+              <p id="keyHint" class="hint">尚未保存 API Key。</p>
+              <button id="clearKey" type="button" class="danger ghost">清除已保存 Key</button>
+            </section>
+
+            <section class="card form-card">
+              <header class="card-head"><div><p class="eyebrow">Model</p><h3>模型与端口</h3></div></header>
+              <div id="modelCards" class="model-presets">
+                <button type="button" data-model="deepseek-v4-pro"><strong>deepseek-v4-pro</strong><small>推荐默认</small></button>
+                <button type="button" data-model="deepseek-v4-flash"><strong>deepseek-v4-flash</strong><small>快速响应</small></button>
+                <button type="button" data-model="deepseek-chat"><strong>deepseek-chat</strong><small>通用对话</small></button>
+                <button type="button" data-model="deepseek-reasoner"><strong>deepseek-reasoner</strong><small>推理任务</small></button>
+                <button type="button" data-model="deepseek-coder"><strong>deepseek-coder</strong><small>代码场景</small></button>
+                <button id="customModelButton" type="button" data-model=""><strong>自定义模型</strong><small>手动输入模型名</small></button>
+              </div>
+              <div class="form-grid"><div><label for="model">自定义或当前模型名称</label><input id="model" type="text" placeholder="deepseek-v4-pro" /></div><div><label for="port">本地端口</label><input id="port" type="number" min="1" max="65535" placeholder="11435" /></div></div>
+            </section>
+
+            <section class="card form-card wide">
+              <header class="card-head"><div><p class="eyebrow">Pricing</p><h3>费用估算</h3></div><small>按百万 Token 价格填写，可留空。</small></header>
+              <div class="pricing-grid">
+                <div><label for="currency">币种</label><input id="currency" type="text" placeholder="USD" /></div>
+                <div><label for="inputPrice">输入价格 / MTok</label><input id="inputPrice" type="number" min="0" step="0.000001" /></div>
+                <div><label for="cacheInputPrice">缓存命中输入 / MTok</label><input id="cacheInputPrice" type="number" min="0" step="0.000001" /></div>
+                <div><label for="outputPrice">输出价格 / MTok</label><input id="outputPrice" type="number" min="0" step="0.000001" /></div>
+              </div>
+              <div class="submit-bar">
+                <button id="saveSettings" type="button" class="secondary">仅保存设置</button>
+                <button type="submit" class="primary">保存并配置 Codex</button>
+                <p>会写入本机 <code>~/.codex/config.toml</code> 和 <code>auth.json</code>。端口变化需重启服务。</p>
+              </div>
+            </section>
+          </form>
+        </section>
+
+        <section class="dashboard-section" data-section="docs">
+          <header class="section-head"><div><p class="eyebrow">Guide</p><h2>使用指南</h2><p>三步完成配置，然后重新打开 Codex CLI。</p></div></header>
+          <section class="docs-grid">
+            <article class="card doc-card"><span>1</span><h3>填写 Key</h3><p>在设置页粘贴 DeepSeek API Key，选择模型和端口。</p></article>
+            <article class="card doc-card"><span>2</span><h3>写入 Codex</h3><p>点击“保存并配置 Codex”，本工具会写入本机 Codex 配置。</p></article>
+            <article class="card doc-card"><span>3</span><h3>重启 Codex</h3><p>保持本代理运行，重新打开 Codex CLI 后即可使用。</p></article>
+          </section>
+          <section class="card docs-note"><h3>常用命令</h3><pre><code>npm install
+npm start
+npm test
+npm run test:translate</code></pre></section>
+        </section>
+      </main>
+    </div>
+
+    <script src="/public/app.js"></script>
+  </body>
+</html>

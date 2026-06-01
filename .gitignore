@@ -1,0 +1,24 @@
+﻿.claude/
+.env
+.env.*
+!.env_example
+node_modules/
+package-lock.json
+
+# 本地运行状态
+config.json
+stats.json
+
+# 临时/调试文件
+_launch.cjs
+_check.mjs
+*.log
+
+# Codex 插件缓存
+.codex/
+
+# 系统文件
+Thumbs.db
+.DS_Store
+
+index.old.js
